@@ -35,8 +35,13 @@ public class playerRepository {
         return jdbcTemplate.queryForObject(sql, playerRowMapper, id);
     }
 
-    public int save(Player player) {
+    public int add(Player player) {
         String sql = "INSERT INTO player (name) VALUES (?)";
+        return jdbcTemplate.update(sql, player.getName());
+    }
+
+    public int delte(Player player) {
+        String sql = "DELETE FROM player WHERE name = ?";
         return jdbcTemplate.update(sql, player.getName());
     }
 }
