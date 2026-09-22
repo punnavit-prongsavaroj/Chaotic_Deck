@@ -2,7 +2,7 @@ package com.example.ChaoticDeck.Model.Card;
 
 
 
-public class Card {
+public abstract class Card {
     
     private String Type;
     private String name;
