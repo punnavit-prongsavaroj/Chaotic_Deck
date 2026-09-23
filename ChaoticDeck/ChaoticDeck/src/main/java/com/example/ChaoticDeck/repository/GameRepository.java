@@ -13,7 +13,6 @@ public class GameRepository {
     public GameRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-    
 
     public List<Product> findAll() {
 
