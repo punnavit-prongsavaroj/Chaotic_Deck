@@ -35,6 +35,13 @@ public class RoomService {
 
     // ผู้เล่นคนอื่นจอยเข้าห้อง
     public void joinRoom(String roomId, long playerId) {
+        List<Long> currentPlayers = playerinRoomRepository.getPlayerIdsInRoom(roomId);
+        if (currentPlayers.size() >= 5) {
+            throw new RuntimeException("Room is full! Maximum 5 players allowed.");
+        }
+        if (currentPlayers.contains(playerId)) {
+            throw new RuntimeException("Player is already in the room.");
+        }
         playerinRoomRepository.addPlayerToRoom(roomId, playerId);
     }
 

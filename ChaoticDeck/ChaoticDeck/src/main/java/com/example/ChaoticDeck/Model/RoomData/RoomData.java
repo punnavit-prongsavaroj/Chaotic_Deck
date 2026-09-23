@@ -12,6 +12,8 @@ public class RoomData {
     private String RoomID;
     private int ledder_id;
     private int Top3Count;
+    private int turnCount;
+    private int requiredDraws = 1;
     private TOP3 TOP3;
     private List<BOMB> BOMBs;
     private DeckList DeckList;
@@ -64,6 +66,22 @@ public class RoomData {
 
     public void setTop3Count(int top3Count) {
         Top3Count = top3Count;
+    }
+
+    public int getTurnCount() {
+        return turnCount;
+    }
+
+    public void setTurnCount(int turnCount) {
+        this.turnCount = turnCount;
+    }
+
+    public int getRequiredDraws() {
+        return requiredDraws;
+    }
+
+    public void setRequiredDraws(int requiredDraws) {
+        this.requiredDraws = requiredDraws;
     }
 
     public TOP3 getTOP3() {

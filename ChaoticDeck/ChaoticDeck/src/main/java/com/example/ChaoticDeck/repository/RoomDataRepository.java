@@ -17,6 +17,8 @@ public class RoomDataRepository {
         roomdata.setRoomID(rs.getString("room_id"));
         roomdata.setTop3Count(rs.getInt("top3_count"));
         roomdata.setLedder_id(rs.getInt("leader_id"));
+        roomdata.setTurnCount(rs.getInt("turn_count"));
+        roomdata.setRequiredDraws(rs.getInt("required_draws"));
         return roomdata;
     };
 
@@ -37,6 +39,16 @@ public class RoomDataRepository {
     public int updateTop3Count(String roomId, int top3Count) {
         String sql = "UPDATE room SET top3_count = ? WHERE room_id = ?";
         return jdbcTemplate.update(sql, top3Count, roomId);
+    }
+
+    public int updateTurnCount(String roomId, int turnCount) {
+        String sql = "UPDATE room SET turn_count = ? WHERE room_id = ?";
+        return jdbcTemplate.update(sql, turnCount, roomId);
+    }
+
+    public int updateRequiredDraws(String roomId, int requiredDraws) {
+        String sql = "UPDATE room SET required_draws = ? WHERE room_id = ?";
+        return jdbcTemplate.update(sql, requiredDraws, roomId);
     }
 
     public int delete(String roomId) {
