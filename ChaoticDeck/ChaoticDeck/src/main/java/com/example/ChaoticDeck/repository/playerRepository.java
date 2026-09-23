@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public class playerRepository {
+public class PlayerRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -21,7 +21,7 @@ public class playerRepository {
         return player;
     };
 
-    public playerRepository(JdbcTemplate jdbcTemplate) {
+    public PlayerRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

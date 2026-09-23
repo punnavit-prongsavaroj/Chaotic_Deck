@@ -5,45 +5,64 @@ import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import com.example.ChaoticDeck.Model.HandCard.HandCard;
 
+import com.example.ChaoticDeck.Model.HandCard.HandCard;
 import com.example.ChaoticDeck.Model.Player.Player;
+import com.example.ChaoticDeck.Model.Card.Card;
 
 @Repository 
-public class handCardRepository {
-     private final JdbcTemplate jdbcTemplate;
+public class HandCardRepository {
+    private final JdbcTemplate jdbcTemplate;
 
-    // RowMapper แปลงแต่ละแถวของ ResultSet เป็น Player object
-    private final RowMapper<HandCard> playerRowMapper = (rs, rowNum) -> {
+    // RowMapper สำหรับ HandCard (ดึง player_id และ card_id มาประกอบกัน)
+    private final RowMapper<HandCard> handCardRowMapper = (rs, rowNum) -> {
         HandCard handCard = new HandCard();
-
         handCard.setId(rs.getInt("id"));
+        
+        Player p = new Player();
+        p.setId(rs.getLong("player_id"));
+        handCard.setPlayer(p);
+        
+        int cardId = rs.getInt("card_id");
+        Card c = new Card() {};
+        c.setId(cardId);
+        handCard.setCard(c);
+        
         handCard.setAmount(rs.getInt("amount"));
 
         return handCard;
     };
 
-    public handCardRepository(JdbcTemplate jdbcTemplate) {
+    public HandCardRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<Player> pullHandData() {
-        String sql = "SELECT * FROM player";
-        return jdbcTemplate.query(sql, playerRowMapper);
+    public List<HandCard> findByPlayerId(long playerId) {
+        String sql = "SELECT * FROM hand_card WHERE player_id = ?";
+        return jdbcTemplate.query(sql, handCardRowMapper, playerId);
     }
 
-    public Player findById(Long id) {
-        String sql = "SELECT * FROM player WHERE id = ?";
-        return jdbcTemplate.queryForObject(sql, playerRowMapper, id);
+    public HandCard findById(int id) {
+        String sql = "SELECT * FROM hand_card WHERE id = ?";
+        return jdbcTemplate.queryForObject(sql, handCardRowMapper, id);
     }
 
-    public int add(Player player) {
-        String sql = "INSERT INTO player (name) VALUES (?)";
-        return jdbcTemplate.update(sql, player.getName());
+    public int add(HandCard handCard) {
+        String sql = "INSERT INTO hand_card (player_id, card_id, amount) VALUES (?, ?, ?)";
+        return jdbcTemplate.update(sql, 
+            handCard.getPlayer().getId(), 
+            handCard.getCard().getId(), 
+            handCard.getAmount()
+        );
     }
 
-    public int delte(Player player) {
-        String sql = "DELETE FROM player WHERE name = ?";
-        return jdbcTemplate.update(sql, player.getName());
+    public int updateAmount(int id, int amount) {
+        String sql = "UPDATE hand_card SET amount = ? WHERE id = ?";
+        return jdbcTemplate.update(sql, amount, id);
+    }
+
+    public int delete(int id) {
+        String sql = "DELETE FROM hand_card WHERE id = ?";
+        return jdbcTemplate.update(sql, id);
     }
 }

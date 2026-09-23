@@ -5,30 +5,42 @@ import com.example.ChaoticDeck.Model.Player.Player;
 
 public class HandCard {
 
-    private Card card;
-    private int Amount;
     private int id;
     private Player player;
-
-    
-
+    private Card card;
+    private int amount;
 
     // ── Constructors ──────────────────────────────────────
     public HandCard() {}
 
-    
-    public HandCard(Card card, int amount) {
+    public HandCard(Player player, Card card, int amount) {
+        this.player = player;
         this.card = card;
-        Amount = amount;
+        this.amount = amount;
     }
 
-    public HandCard(Card card, int amount, int id, Player player) {
-        this.card = card;
-        Amount = amount;
+    public HandCard(int id, Player player, Card card, int amount) {
         this.id = id;
         this.player = player;
+        this.card = card;
+        this.amount = amount;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
 
     public Card getCard() {
         return card;
@@ -39,33 +51,10 @@ public class HandCard {
     }
 
     public int getAmount() {
-        return Amount;
+        return amount;
     }
 
     public void setAmount(int amount) {
-        Amount = amount;
+        this.amount = amount;
     }
-
-
-    public int getId() {
-        return id;
-    }
-
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-
-    public Player getPlayer() {
-        return player;
-    }
-
-
-    public void setPlayer(Player player) {
-        this.player = player;
-    }
-
-
-    
 }
