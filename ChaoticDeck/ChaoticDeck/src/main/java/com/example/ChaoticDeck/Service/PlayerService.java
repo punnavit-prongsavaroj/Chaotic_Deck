@@ -1,6 +1,6 @@
 package com.example.ChaoticDeck.Service;
 
-import com.example.ChaoticDeck.repository.playerRepository;
+import com.example.ChaoticDeck.repository.PlayerRepository;
 import com.example.ChaoticDeck.Model.Player.Player;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +9,9 @@ import java.util.List;
 @Service
 public class PlayerService {
 
-    private final playerRepository playerRepository;
+    private final PlayerRepository playerRepository;
 
-    public PlayerService(playerRepository playerRepository) {
+    public PlayerService(PlayerRepository playerRepository) {
         this.playerRepository = playerRepository;
     }
 
@@ -27,7 +27,8 @@ public class PlayerService {
 
     // เพิ่มข้อมูลใหม่
     public Player createPlayer(Player player) {
-        playerRepository.save(player);
+        long id = playerRepository.add(player);
+        player.setId(id);
         return player;
     }
 }

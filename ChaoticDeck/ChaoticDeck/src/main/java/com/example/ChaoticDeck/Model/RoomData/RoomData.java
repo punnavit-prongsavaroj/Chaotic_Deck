@@ -11,6 +11,8 @@ public class RoomData {
     private int id;
     private String RoomID;
     private int ledder_id;
+    private String status;       // WAITING, PLAYING, FINISHED
+    private int maxPlayers;      // Leader ตั้งเอง (2-8)
     private int Top3Count;
     private TOP3 TOP3;
     private List<BOMB> BOMBs;
@@ -104,5 +106,21 @@ public class RoomData {
 
     public void setPlayerinRoom(PlayerinRoom playerinRoom) {
         PlayerinRoom = playerinRoom;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
     }
 }
