@@ -1,7 +1,7 @@
-package com.example.ChaoticDeck.Controller;
+package com.example.ChaoticDeck.controller;
 
 import com.example.ChaoticDeck.Model.Player.Player;
-import com.example.ChaoticDeck.Service.PlayerService;
+import com.example.ChaoticDeck.service.PlayerService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
