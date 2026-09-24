@@ -1,4 +1,4 @@
-package com.example.ChaoticDeck.Service;
+package com.example.ChaoticDeck.service;
 
 import com.example.ChaoticDeck.Model.RoomData.RoomData;
 import com.example.ChaoticDeck.repository.PlayerinRoomRepository;

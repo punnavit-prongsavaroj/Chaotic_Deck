@@ -24,6 +24,11 @@ public class Top3Repository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public List<TOP3> getTop3ByRoomId(String roomId) {
+        String sql = "SELECT * FROM top3 WHERE room_id = ? ORDER BY number ASC";
+        return jdbcTemplate.query(sql, top3RowMapper, roomId);
+    }
+
     public List<TOP3> findByRoomId(String roomId) {
         String sql = "SELECT * FROM top3 WHERE room_id = ?";
         return jdbcTemplate.query(sql, top3RowMapper, roomId);

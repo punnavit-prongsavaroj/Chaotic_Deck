@@ -25,6 +25,21 @@ public class DeckListRepository {
         return jdbcTemplate.update(sql, newAmount, roomId, cardId);
     }
 
+    public int removeCardFromDeck(String roomId, int cardId) {
+        String sql = "UPDATE decklist SET amount = amount - 1 WHERE room_id = ? AND card_id = ? AND amount > 0";
+        return jdbcTemplate.update(sql, roomId, cardId);
+    }
+
+    // สร้างคลาสจำลองสำหรับดึงข้อมูล Card กับ Amount
+    public record DeckItem(int cardId, int amount) {}
+
+    public java.util.List<DeckItem> getDeckListByRoomId(String roomId) {
+        String sql = "SELECT card_id, amount FROM decklist WHERE room_id = ? AND amount > 0";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> 
+            new DeckItem(rs.getInt("card_id"), rs.getInt("amount"))
+        , roomId);
+    }
+
     public int deleteByRoomId(String roomId) {
         String sql = "DELETE FROM decklist WHERE room_id = ?";
         return jdbcTemplate.update(sql, roomId);
