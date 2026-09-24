@@ -31,4 +31,8 @@ public class PlayerService {
         player.setId(id);
         return player;
     }
+
+    public boolean existsById(Long id) {
+        return playerRepository.existsById(id);
+    }
 }

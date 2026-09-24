@@ -47,8 +47,18 @@ public class RoomDataRepository {
         return jdbcTemplate.update(sql, top3Count, roomId);
     }
 
+    public int updateStatus(String roomId, String status) {
+        String sql = "UPDATE room SET status = ? WHERE room_id = ?";
+        return jdbcTemplate.update(sql, status, roomId);
+    }
+
     public int delete(String roomId) {
         String sql = "DELETE FROM room WHERE room_id = ?";
         return jdbcTemplate.update(sql, roomId);
     }
+
+    public RoomData getRoomData(String roomId) {
+        String sql = "SELECT * FROM room WHERE room_id = ?";
+        return jdbcTemplate.queryForObject(sql, RoomRowMapper, roomId);
+    } 
 }

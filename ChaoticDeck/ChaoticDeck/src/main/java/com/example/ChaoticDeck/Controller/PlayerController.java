@@ -1,4 +1,4 @@
-package com.example.ChaoticDeck.controller;
+package com.example.ChaoticDeck.Controller;
 
 import com.example.ChaoticDeck.Model.Player.Player;
 import com.example.ChaoticDeck.Service.GameService;
@@ -13,12 +13,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/Player")
+@CrossOrigin(origins = "*")
 public class PlayerController {
 
     private final PlayerService playerService;
+    private final RoomService roomService;
  
-    public PlayerController(PlayerService playerService) {
+    public PlayerController(PlayerService playerService, RoomService roomService) {
         this.playerService = playerService;
+        this.roomService = roomService;
     }
  
     // สร้างผู้เล่นใหม่ (กรอกชื่อตอนเปิดแอป)
@@ -35,6 +38,20 @@ public class PlayerController {
         return playerService.getPlayerById(id);
     }
 
-    
+    // ตรวจสอบว่า Player ID นี้ยังมีอยู่ใน DB หรือไม่ (สำหรับ Cookie validation)
+    @GetMapping("/{id}/exists")
+    public boolean exists(@PathVariable Long id) {
+        return playerService.existsById(id);
+    }
+
+    // ตรวจสอบว่าผู้เล่นคนนี้กำลังอยู่ในห้องไหนหรือไม่ (สำหรับ Auto-rejoin)
+    @GetMapping("/{id}/room")
+    public ResponseEntity<?> getPlayerRoom(@PathVariable Long id) {
+        String roomId = roomService.getRoomByPlayerId(id);
+        if (roomId == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(java.util.Collections.singletonMap("roomId", roomId));
+    }
 
 }
