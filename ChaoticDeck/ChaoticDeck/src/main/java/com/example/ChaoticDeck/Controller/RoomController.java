@@ -1,4 +1,4 @@
-package com.example.ChaoticDeck.controller;
+package com.example.ChaoticDeck.Controller;
 
 
 import java.util.List;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ChaoticDeck.Model.RoomData.RoomData;
-import com.example.ChaoticDeck.service.RoomService;
+import com.example.ChaoticDeck.Service.RoomService;
 
 @RestController
 @RequestMapping("/Room")

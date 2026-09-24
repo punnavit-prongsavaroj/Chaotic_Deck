@@ -47,4 +47,8 @@ public class RoomService {
     public void closeRoom(String roomId) {
         roomDataRepository.delete(roomId);
     }
+
+    public RoomData getRoomData(String roomId) {
+        return roomDataRepository.get(roomId);
+    }
 }
