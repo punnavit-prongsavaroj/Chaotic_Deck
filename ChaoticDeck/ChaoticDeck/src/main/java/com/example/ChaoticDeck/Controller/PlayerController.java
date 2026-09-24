@@ -1,4 +1,4 @@
-package com.example.ChaoticDeck.Controller;
+package com.example.ChaoticDeck.controller;
 
 import com.example.ChaoticDeck.Model.Player.Player;
 import com.example.ChaoticDeck.Service.GameService;
