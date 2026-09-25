@@ -1,4 +1,4 @@
-package com.example.ChaoticDeck.service;
+package com.example.ChaoticDeck.Service;
 
 import com.example.ChaoticDeck.repository.PlayerRepository;
 import com.example.ChaoticDeck.Model.Player.Player;
@@ -27,7 +27,12 @@ public class PlayerService {
 
     // เพิ่มข้อมูลใหม่
     public Player createPlayer(Player player) {
-        playerRepository.add(player);
+        long id = playerRepository.add(player);
+        player.setId(id);
         return player;
+    }
+
+    public boolean existsById(Long id) {
+        return playerRepository.existsById(id);
     }
 }

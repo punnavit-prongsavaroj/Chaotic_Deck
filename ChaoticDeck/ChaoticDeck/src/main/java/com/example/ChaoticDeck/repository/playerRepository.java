@@ -3,9 +3,12 @@ package com.example.ChaoticDeck.repository;
 import com.example.ChaoticDeck.Model.Player.Player;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 
 @Repository
@@ -35,9 +38,21 @@ public class PlayerRepository {
         return jdbcTemplate.queryForObject(sql, playerRowMapper, id);
     }
 
-    public int add(Player player) {
+    public boolean existsById(Long id) {
+        String sql = "SELECT COUNT(*) FROM player WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
+    }
+
+    public long add(Player player) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
         String sql = "INSERT INTO player (name) VALUES (?)";
-        return jdbcTemplate.update(sql, player.getName());
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, player.getName());
+            return ps;
+        }, keyHolder);
+        return keyHolder.getKey().longValue();
     }
 
     public int delte(Player player) {

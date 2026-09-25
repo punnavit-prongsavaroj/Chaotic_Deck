@@ -1,37 +1,57 @@
-package com.example.ChaoticDeck.controller;
+package com.example.ChaoticDeck.Controller;
 
 import com.example.ChaoticDeck.Model.Player.Player;
-import com.example.ChaoticDeck.service.PlayerService;
+import com.example.ChaoticDeck.Service.GameService;
+import com.example.ChaoticDeck.Service.PlayerService;
+import com.example.ChaoticDeck.Service.RoomService;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/players")
+@RequestMapping("/Player")
+@CrossOrigin(origins = "*")
 public class PlayerController {
 
     private final PlayerService playerService;
-
-    public PlayerController(PlayerService playerService) {
+    private final RoomService roomService;
+ 
+    public PlayerController(PlayerService playerService, RoomService roomService) {
         this.playerService = playerService;
+        this.roomService = roomService;
     }
-
-    // GET http://localhost:8080/api/players
-    @GetMapping
-    public List<Player> getAllPlayers() {
-        return playerService.getAllPlayers();
+ 
+    // สร้างผู้เล่นใหม่ (กรอกชื่อตอนเปิดแอป)
+    @PostMapping
+    public Player createPlayer(@RequestBody Player request) {
+        Player player = new Player();
+        player.setName(request.getName());   // set เฉพาะ field ที่อนุญาต
+        return playerService.createPlayer(player);
     }
-
-    // GET http://localhost:8080/api/players/1
+ 
+    // ดูข้อมูลผู้เล่น
     @GetMapping("/{id}")
-    public Player getPlayerById(@PathVariable Long id) {
+    public Player getPlayer(@PathVariable Long id) {
         return playerService.getPlayerById(id);
     }
 
-    // POST http://localhost:8080/api/players
-    // Body (JSON): { "name": "Zad" }
-    @PostMapping
-    public Player createPlayer(@RequestBody Player player) {
-        return playerService.createPlayer(player);
+    // ตรวจสอบว่า Player ID นี้ยังมีอยู่ใน DB หรือไม่ (สำหรับ Cookie validation)
+    @GetMapping("/{id}/exists")
+    public boolean exists(@PathVariable Long id) {
+        return playerService.existsById(id);
     }
+
+    // ตรวจสอบว่าผู้เล่นคนนี้กำลังอยู่ในห้องไหนหรือไม่ (สำหรับ Auto-rejoin)
+    @GetMapping("/{id}/room")
+    public ResponseEntity<?> getPlayerRoom(@PathVariable Long id) {
+        String roomId = roomService.getRoomByPlayerId(id);
+        if (roomId == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(java.util.Collections.singletonMap("roomId", roomId));
+    }
+
 }
