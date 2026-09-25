@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 @Service
 public class GameService {
 
@@ -19,19 +21,22 @@ public class GameService {
     private final RoomDataRepository roomDataRepository;
     private final Top3Repository top3Repository;
     private final PlayerinRoomRepository playerinRoomRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public GameService(BombRepository bombRepository, 
                        DeckListRepository deckListRepository,
                        HandCardRepository handCardRepository,
                        RoomDataRepository roomDataRepository,
                        Top3Repository top3Repository,
-                       PlayerinRoomRepository playerinRoomRepository) {
+                       PlayerinRoomRepository playerinRoomRepository,
+                       SimpMessagingTemplate messagingTemplate) {
         this.bombRepository = bombRepository;
         this.deckListRepository = deckListRepository;
         this.handCardRepository = handCardRepository;
         this.roomDataRepository = roomDataRepository;
         this.top3Repository = top3Repository;
         this.playerinRoomRepository = playerinRoomRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public void startGame(String roomId) {
@@ -61,6 +66,8 @@ public class GameService {
 
         roomDataRepository.updateTurnCount(roomId, 0);
         roomDataRepository.updateRequiredDraws(roomId, 1);
+
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, "GAME_STARTED");
     }
 
     public String drawCard(String roomId, long playerId) {

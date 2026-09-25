@@ -26,8 +26,7 @@ public class GameController {
     // เริ่มเกมในห้อง
     @PostMapping("/{roomId}/start")
     public String startGame(@PathVariable String roomId) {
-        List<Long> players = roomService.getPlayersInRoom(roomId);
-        gameService.startGame(roomId, players.size());
+        gameService.startGame(roomId);
         return "Started";
     }
  
