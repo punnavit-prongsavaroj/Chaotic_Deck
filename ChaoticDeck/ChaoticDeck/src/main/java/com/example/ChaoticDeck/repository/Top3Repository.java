@@ -44,6 +44,11 @@ public class Top3Repository {
         return jdbcTemplate.update(sql, roomId, position);
     }
 
+    public int shiftTop3Up(String roomId) {
+        String sql = "UPDATE top3 SET number = number - 1 WHERE room_id = ? AND number > 1";
+        return jdbcTemplate.update(sql, roomId);
+    }
+
     public int deleteByRoomId(String roomId) {
         String sql = "DELETE FROM top3 WHERE room_id = ?";
         return jdbcTemplate.update(sql, roomId);

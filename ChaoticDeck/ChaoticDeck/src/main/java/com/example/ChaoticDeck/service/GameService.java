@@ -4,6 +4,7 @@ import com.example.ChaoticDeck.Model.BOMB.BOMB;
 import com.example.ChaoticDeck.Model.HandCard.HandCard;
 import com.example.ChaoticDeck.Model.RoomData.RoomData;
 import com.example.ChaoticDeck.Model.TOP3.TOP3;
+import com.example.ChaoticDeck.Model.DiscardPile.DiscardPile;
 import com.example.ChaoticDeck.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -18,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.HashSet;
 
 @Service
 public class GameService {
@@ -28,6 +30,7 @@ public class GameService {
     private final RoomDataRepository roomDataRepository;
     private final Top3Repository top3Repository;
     private final PlayerinRoomRepository playerinRoomRepository;
+    private final DiscardPileRepository discardPileRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     private final Map<String, PendingAction> pendingActions = new ConcurrentHashMap<>();
@@ -39,6 +42,7 @@ public class GameService {
                        RoomDataRepository roomDataRepository,
                        Top3Repository top3Repository,
                        PlayerinRoomRepository playerinRoomRepository,
+                       DiscardPileRepository discardPileRepository,
                        SimpMessagingTemplate messagingTemplate) {
         this.bombRepository = bombRepository;
         this.deckListRepository = deckListRepository;
@@ -46,6 +50,7 @@ public class GameService {
         this.roomDataRepository = roomDataRepository;
         this.top3Repository = top3Repository;
         this.playerinRoomRepository = playerinRoomRepository;
+        this.discardPileRepository = discardPileRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -54,8 +59,60 @@ public class GameService {
         long playerId;
         String cardType;
         Long targetPlayerId;
+        Integer retrieveCardId;
+        String targetCardName;
         int nopeCount = 0;
         ScheduledFuture<?> timeoutTask;
+    }
+
+    public List<DiscardPile> getDiscardPile(String roomId) {
+        return discardPileRepository.getDiscardPileByRoomId(roomId);
+    }
+
+    public List<TOP3> getTop3(String roomId) {
+        return top3Repository.getTop3ByRoomId(roomId);
+    }
+
+    public List<HandCard> getHand(String roomId, long playerId) {
+        String status = playerinRoomRepository.getPlayerStatus(roomId, playerId);
+        if (status == null) {
+            throw new RuntimeException("Player not in room");
+        }
+        return handCardRepository.findByPlayerId(playerId);
+    }
+
+    public Map<String, Object> getGameState(String roomId) {
+        RoomData room = roomDataRepository.findByRoomId(roomId);
+        if (room == null) {
+            throw new RuntimeException("Room not found");
+        }
+
+        List<Long> allPlayers = playerinRoomRepository.getPlayerIdsInRoom(roomId);
+        List<Long> alivePlayers = playerinRoomRepository.getAlivePlayerIdsInRoom(roomId);
+        
+        List<BOMB> bList = bombRepository.findByRoomId(roomId);
+        long unplacedBombs = bList.stream().filter(b -> b.getBombCount() == -1).count();
+        List<DeckListRepository.DeckItem> pool = deckListRepository.getDeckListByRoomId(roomId);
+        int totalCards = pool.stream().mapToInt(DeckListRepository.DeckItem::amount).sum();
+        int deckSize = totalCards + (int)unplacedBombs;
+
+        Map<String, Object> state = new java.util.HashMap<>();
+        state.put("roomId", room.getRoomID());
+        state.put("status", room.getStatus());
+        state.put("currentTurnCount", room.getTurnCount());
+        state.put("requiredDraws", room.getRequiredDraws());
+        state.put("currentTurnPlayerId", getCurrentPlayerTurn(roomId));
+        state.put("allPlayers", allPlayers);
+        state.put("alivePlayers", alivePlayers);
+        state.put("deckSize", deckSize);
+
+        Map<Long, String> playerStatuses = new java.util.HashMap<>();
+        for(Long pid : allPlayers) {
+            playerStatuses.put(pid, playerinRoomRepository.getPlayerStatus(roomId, pid));
+        }
+        state.put("playerStatuses", playerStatuses);
+
+        return state;
     }
 
     public void startGame(String roomId) {
@@ -80,9 +137,12 @@ public class GameService {
         }
         
         for(int cardId=3; cardId<=13; cardId++) {
-             int amount = (cardId == 13) ? 5 : 4; // Add 5 NOPEs
+             int amount = (cardId == 13) ? 5 : 4; 
              deckListRepository.addCardToDeck(roomId, cardId, amount);
         }
+
+        top3Repository.deleteByRoomId(roomId);
+        discardPileRepository.deleteByRoomId(roomId);
 
         roomDataRepository.updateTurnCount(roomId, 0);
         roomDataRepository.updateRequiredDraws(roomId, 1);
@@ -147,8 +207,18 @@ public class GameService {
             return "You have a pending action!";
         }
 
-        bombRepository.decrementActiveBombs(roomId);
+        List<TOP3> top3 = top3Repository.getTop3ByRoomId(roomId);
+        boolean drawnFromTop3 = false;
+        int drawnCardId = -1;
+        
+        if (!top3.isEmpty() && top3.get(0).getNumber() == 1) {
+            drawnFromTop3 = true;
+            drawnCardId = top3.get(0).getTop3Count();
+            top3Repository.delete(top3.get(0).getId());
+            top3Repository.shiftTop3Up(roomId);
+        }
 
+        bombRepository.decrementActiveBombs(roomId);
         List<BOMB> bombs = bombRepository.findByRoomId(roomId);
         Optional<BOMB> explodedBomb = bombs.stream()
                 .filter(b -> b.getBombCount() == 0)
@@ -159,6 +229,8 @@ public class GameService {
         if (explodedBomb.isPresent()) {
             bombRepository.delete(explodedBomb.get().getId());
             drawnBomb = true;
+        } else if (drawnFromTop3) {
+            handCardRepository.addOrUpdateCard(playerId, drawnCardId);
         } else {
             List<DeckListRepository.DeckItem> pool = deckListRepository.getDeckListByRoomId(roomId);
             long unplacedBombs = bombs.stream().filter(b -> b.getBombCount() == -1).count();
@@ -177,7 +249,7 @@ public class GameService {
                 drawnBomb = true;
             } else {
                 int current = (int)unplacedBombs;
-                int drawnCardId = -1;
+                drawnCardId = -1;
                 for(DeckListRepository.DeckItem item : pool) {
                     current += item.amount();
                     if (roll < current) {
@@ -222,7 +294,7 @@ public class GameService {
         return "Safe! You drew a normal card.";
     }
 
-    public String playCards(String roomId, long playerId, List<Integer> cardIds, String cardType, Long targetPlayerId) {
+    public String playCards(String roomId, long playerId, List<Integer> cardIds, String cardType, Long targetPlayerId, Integer retrieveCardId, String targetCardName) {
         
         if ("NOPE".equalsIgnoreCase(cardType)) {
             PendingAction pending = pendingActions.get(roomId);
@@ -232,6 +304,7 @@ public class GameService {
             
             for (int cardId : cardIds) {
                 handCardRepository.removeCardFromHand(playerId, cardId);
+                discardPileRepository.add(roomId, cardId, playerId);
             }
             
             pending.nopeCount++;
@@ -263,22 +336,29 @@ public class GameService {
             }
         }
 
+        String actualCardType = cardType;
+        if (cardIds.size() == 2) actualCardType = "COMBO2";
+        if (cardIds.size() == 3) actualCardType = "COMBO3";
+        if (cardIds.size() == 5) actualCardType = "COMBO5";
+
         for (int cardId : cardIds) {
             handCardRepository.removeCardFromHand(playerId, cardId);
+            discardPileRepository.add(roomId, cardId, playerId);
         }
         
-        if ("DEFUSE".equalsIgnoreCase(cardType)) {
-            // Defuse doesn't wait for nope
+        if ("DEFUSE".equalsIgnoreCase(actualCardType)) {
             return "Defuse ready, call defuseBomb API";
         }
         
-        messagingTemplate.convertAndSend("/topic/room/" + roomId, "ACTION_PENDING:" + cardType + ":FROM:" + playerId);
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, "ACTION_PENDING:" + actualCardType + ":FROM:" + playerId);
 
         PendingAction action = new PendingAction();
         action.roomId = roomId;
         action.playerId = playerId;
-        action.cardType = cardType;
+        action.cardType = actualCardType;
         action.targetPlayerId = targetPlayerId;
+        action.retrieveCardId = retrieveCardId;
+        action.targetCardName = targetCardName;
         action.nopeCount = 0;
         
         action.timeoutTask = scheduler.schedule(() -> resolveAction(roomId), 5, TimeUnit.SECONDS);
@@ -300,7 +380,7 @@ public class GameService {
 
         RoomData room = roomDataRepository.findByRoomId(roomId);
         
-        if ("NORMAL".equalsIgnoreCase(action.cardType)) {
+        if ("COMBO2".equalsIgnoreCase(action.cardType)) {
             if (action.targetPlayerId == null) return;
             List<HandCard> targetHand = handCardRepository.findByPlayerId(action.targetPlayerId);
             List<HandCard> availableCards = targetHand.stream().filter(h -> h.getAmount() > 0).toList();
@@ -316,6 +396,30 @@ public class GameService {
             handCardRepository.addOrUpdateCard(action.playerId, stolenCardId);
             
             messagingTemplate.convertAndSend("/topic/room/" + roomId, "PLAYER_STOLE_CARD:" + action.playerId + ":" + action.targetPlayerId);
+            return;
+        }
+
+        if ("COMBO3".equalsIgnoreCase(action.cardType)) {
+            if (action.targetPlayerId == null || action.targetCardName == null) return;
+            List<HandCard> targetHand = handCardRepository.findByPlayerId(action.targetPlayerId);
+            Optional<HandCard> match = targetHand.stream()
+                .filter(h -> h.getAmount() > 0 && action.targetCardName.equalsIgnoreCase(h.getCard().getName()))
+                .findFirst();
+            if (match.isPresent()) {
+                handCardRepository.removeCardFromHand(action.targetPlayerId, match.get().getCard().getId());
+                handCardRepository.addOrUpdateCard(action.playerId, match.get().getCard().getId());
+                messagingTemplate.convertAndSend("/topic/room/" + roomId, "COMBO3_SUCCESS:" + action.playerId + ":" + action.targetPlayerId);
+            } else {
+                messagingTemplate.convertAndSend("/topic/room/" + roomId, "COMBO3_FAILED:" + action.playerId + ":" + action.targetPlayerId);
+            }
+            return;
+        }
+
+        if ("COMBO5".equalsIgnoreCase(action.cardType)) {
+            if (action.retrieveCardId == null) return;
+            handCardRepository.addOrUpdateCard(action.playerId, action.retrieveCardId);
+            // Optionally remove from discard pile, but usually we just copy it in EK digital adaptations or remove it
+            messagingTemplate.convertAndSend("/topic/room/" + roomId, "COMBO5_SUCCESS:" + action.playerId);
             return;
         }
 
@@ -348,41 +452,50 @@ public class GameService {
                 
             case "SEETHEFUTURE":
                 List<TOP3> existingTop3 = top3Repository.getTop3ByRoomId(roomId);
-                if (existingTop3.isEmpty()) {
-                    List<BOMB> bList = bombRepository.findByRoomId(roomId);
-                    List<DeckListRepository.DeckItem> pool = deckListRepository.getDeckListByRoomId(roomId);
+                int needed = 3 - existingTop3.size();
+                int currentPos = existingTop3.size() + 1;
+                
+                List<BOMB> bList = bombRepository.findByRoomId(roomId);
+                List<DeckListRepository.DeckItem> pool = deckListRepository.getDeckListByRoomId(roomId);
+                long unplacedBombs = bList.stream().filter(b -> b.getBombCount() == -1).count();
+                int totalCards = pool.stream().mapToInt(DeckListRepository.DeckItem::amount).sum();
+                
+                for (int i = 0; i < needed; i++) {
+                    int grandTotal = totalCards + (int)unplacedBombs;
+                    if (grandTotal == 0) break; 
                     
-                    for (int pos = 1; pos <= 3; pos++) {
-                        final int currentPos = pos;
-                        boolean isBomb = bList.stream().anyMatch(b -> b.getBombCount() == currentPos);
-                        
-                        TOP3 t = new TOP3();
-                        t.setNumber(pos);
-                        if (isBomb) {
-                            t.setTop3Count(1);
-                        } else {
-                            int tCount = pool.stream().mapToInt(DeckListRepository.DeckItem::amount).sum();
-                            if (tCount > 0) {
-                                int r = new Random().nextInt(tCount);
-                                int curr = 0;
-                                int pickedId = -1;
-                                for (DeckListRepository.DeckItem item : pool) {
-                                    curr += item.amount();
-                                    if (r < curr) {
-                                        pickedId = item.cardId();
-                                        break;
-                                    }
-                                }
-                                t.setTop3Count(pickedId);
-                                deckListRepository.removeCardFromDeck(roomId, pickedId);
-                                pool = deckListRepository.getDeckListByRoomId(roomId);
-                            } else {
+                    int roll = new Random().nextInt(grandTotal);
+                    TOP3 t = new TOP3();
+                    t.setNumber(currentPos);
+                    
+                    if (roll < unplacedBombs) {
+                        Optional<BOMB> randomBomb = bList.stream().filter(b -> b.getBombCount() == -1).findFirst();
+                        if (randomBomb.isPresent()) {
+                            BOMB b = randomBomb.get();
+                            bombRepository.updateBombCount(b.getId(), currentPos);
+                            b.setBombCount(currentPos); 
+                            unplacedBombs--;
+                        }
+                        t.setTop3Count(1);
+                    } else {
+                        int current = (int)unplacedBombs;
+                        int pickedId = -1;
+                        for (DeckListRepository.DeckItem item : pool) {
+                            current += item.amount();
+                            if (roll < current) {
+                                pickedId = item.cardId();
                                 break;
                             }
                         }
-                        top3Repository.add(roomId, t);
+                        t.setTop3Count(pickedId);
+                        deckListRepository.removeCardFromDeck(roomId, pickedId);
+                        pool = deckListRepository.getDeckListByRoomId(roomId); 
+                        totalCards--;
                     }
+                    top3Repository.add(roomId, t);
+                    currentPos++;
                 }
+                messagingTemplate.convertAndSend("/topic/room/" + roomId, "SEETHEFUTURE_RESOLVED:" + action.playerId);
                 break;
                 
             case "FAVOR":
@@ -416,8 +529,10 @@ public class GameService {
             return "You don't have a bomb to defuse!";
         }
 
-        bombRepository.pushBombsDown(roomId, putAtPosition);
-        top3Repository.pushTop3Down(roomId, putAtPosition);
+        if (putAtPosition > 0) {
+            bombRepository.pushBombsDown(roomId, putAtPosition);
+            top3Repository.pushTop3Down(roomId, putAtPosition);
+        }
         
         BOMB b = new BOMB(roomId, putAtPosition);
         bombRepository.add(b);
