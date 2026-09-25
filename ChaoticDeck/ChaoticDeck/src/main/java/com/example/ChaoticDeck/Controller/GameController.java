@@ -36,4 +36,26 @@ public class GameController {
         return gameService.drawCard(roomId, playerId);
     }
 
+    // ลงการ์ด
+    @PostMapping("/{roomId}/play")
+    public String playCard(@PathVariable String roomId, 
+                           @RequestParam Long playerId, 
+                           @RequestParam List<Integer> cardIds, 
+                           @RequestParam String cardType,
+                           @RequestParam(required = false) Long targetPlayerId) {
+        return gameService.playCards(roomId, playerId, cardIds, cardType, targetPlayerId);
+    }
+
+    // มอบการ์ดให้เพื่อน (เมื่อโดน FAVOR)
+    @PostMapping("/{roomId}/give-favor")
+    public String giveFavor(@PathVariable String roomId, @RequestParam Long playerId, @RequestParam int cardId) {
+        return gameService.giveFavor(roomId, playerId, cardId);
+    }
+
+    // ปลดชนวนระเบิด
+    @PostMapping("/{roomId}/defuse")
+    public String defuseBomb(@PathVariable String roomId, @RequestParam Long playerId, @RequestParam int putAtPosition) {
+        return gameService.defuseBomb(roomId, playerId, putAtPosition);
+    }
+
 }

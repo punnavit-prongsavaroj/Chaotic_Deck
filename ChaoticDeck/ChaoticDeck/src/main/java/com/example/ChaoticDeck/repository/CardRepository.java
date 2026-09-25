@@ -38,4 +38,15 @@ public class CardRepository {
         String sql = "SELECT * FROM card WHERE id = ?";
         return jdbcTemplate.queryForObject(sql, cardRowMapper, id);
     }
+
+    public long count() {
+        String sql = "SELECT COUNT(*) FROM card";
+        Long result = jdbcTemplate.queryForObject(sql, Long.class);
+        return result != null ? result : 0;
+    }
+
+    public void add(int id, String type, String name) {
+        String sql = "INSERT INTO card (id, type, name) VALUES (?, ?, ?)";
+        jdbcTemplate.update(sql, id, type, name);
+    }
 }
