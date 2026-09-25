@@ -50,6 +50,18 @@ public class BombRepository {
         return jdbcTemplate.update(sql, roomId);
     }
 
+    // ดันระเบิดที่อยู่ในคิว >= position ลงไป 1 สเต็ป
+    public int pushBombsDown(String roomId, int position) {
+        String sql = "UPDATE bomb SET bomb_count = bomb_count + 1 WHERE room_id = ? AND bomb_count >= ?";
+        return jdbcTemplate.update(sql, roomId, position);
+    }
+
+    // รีเซ็ตระเบิดที่อยู่ในคิวกลับไปเป็นแบบสุ่ม (ใช้ตอน Shuffle)
+    public int resetActiveBombs(String roomId) {
+        String sql = "UPDATE bomb SET bomb_count = -1 WHERE room_id = ? AND bomb_count > 0";
+        return jdbcTemplate.update(sql, roomId);
+    }
+
     // ลบระเบิดออกจากห้อง (เช่น ตอนมีคนระเบิดตายแล้วระเบิดออกจากเกม)
     public int delete(int id) {
         String sql = "DELETE FROM bomb WHERE id = ?";
