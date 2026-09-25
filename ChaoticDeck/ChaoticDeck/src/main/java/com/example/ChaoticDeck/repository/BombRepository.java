@@ -67,4 +67,10 @@ public class BombRepository {
         String sql = "DELETE FROM bomb WHERE id = ?";
         return jdbcTemplate.update(sql, id);
     }
+    
+    // ล้างระเบิดทั้งห้องตอนเริ่มเกมใหม่
+    public int deleteByRoomId(String roomId) {
+        String sql = "DELETE FROM bomb WHERE room_id = ?";
+        return jdbcTemplate.update(sql, roomId);
+    }
 }

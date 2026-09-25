@@ -115,19 +115,31 @@ public class GameService {
         return state;
     }
 
-    public void startGame(String roomId) {
+    public String startGame(String roomId, long playerId) {
+        RoomData room = roomDataRepository.findByRoomId(roomId);
+        if (room == null) return "Room not found!";
+        if (room.getLedder_id() != playerId) return "Only the leader can start the game!";
+        
         List<Long> players = playerinRoomRepository.getPlayerIdsInRoom(roomId);
         int playerCount = players.size();
+        if (playerCount < 2) return "Need at least 2 players!";
+        
+        // ล้างข้อมูลเก่า (สำหรับกรณี Restart เกม)
+        deckListRepository.deleteByRoomId(roomId);
+        bombRepository.deleteByRoomId(roomId);
+        top3Repository.deleteByRoomId(roomId);
+        discardPileRepository.deleteByRoomId(roomId);
         
         for (Long pid : players) {
             playerinRoomRepository.updatePlayerStatus(roomId, pid, "ALIVE");
+            handCardRepository.deleteByPlayerId(pid);
         }
         
-        for (Long playerId : players) {
-            handCardRepository.addOrUpdateCard(playerId, 2); 
+        for (Long pid : players) {
+            handCardRepository.addOrUpdateCard(pid, 2); 
             for (int i=0; i<4; i++) {
                 int randomCardId = new Random().nextInt(10) + 3; 
-                handCardRepository.addOrUpdateCard(playerId, randomCardId);
+                handCardRepository.addOrUpdateCard(pid, randomCardId);
             }
         }
         
@@ -141,14 +153,12 @@ public class GameService {
              deckListRepository.addCardToDeck(roomId, cardId, amount);
         }
 
-        top3Repository.deleteByRoomId(roomId);
-        discardPileRepository.deleteByRoomId(roomId);
-
         roomDataRepository.updateTurnCount(roomId, 0);
         roomDataRepository.updateRequiredDraws(roomId, 1);
         roomDataRepository.updateStatus(roomId, "PLAYING");
 
         messagingTemplate.convertAndSend("/topic/room/" + roomId, "GAME_STARTED");
+        return "Started";
     }
 
     public long getCurrentPlayerTurn(String roomId) {

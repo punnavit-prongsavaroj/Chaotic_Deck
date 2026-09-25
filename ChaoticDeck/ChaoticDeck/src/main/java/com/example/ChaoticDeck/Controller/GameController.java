@@ -24,11 +24,10 @@ public class GameController {
         this.roomService = roomService;
     }
     
-    // เริ่มเกมในห้อง
+    // เริ่มเกมในห้อง (หัวหน้าห้องเท่านั้น)
     @PostMapping("/{roomId}/start")
-    public String startGame(@PathVariable String roomId) {
-        gameService.startGame(roomId);
-        return "Started";
+    public String startGame(@PathVariable String roomId, @RequestParam Long playerId) {
+        return gameService.startGame(roomId, playerId);
     }
  
     // จั่วการ์ด

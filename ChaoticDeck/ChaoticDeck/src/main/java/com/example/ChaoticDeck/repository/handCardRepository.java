@@ -84,4 +84,9 @@ public class HandCardRepository {
         String sql = "DELETE FROM hand_card WHERE id = ?";
         return jdbcTemplate.update(sql, id);
     }
+    
+    public int deleteByPlayerId(long playerId) {
+        String sql = "DELETE FROM hand_card WHERE player_id = ?";
+        return jdbcTemplate.update(sql, playerId);
+    }
 }
